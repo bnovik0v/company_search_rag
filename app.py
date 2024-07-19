@@ -12,8 +12,7 @@ load_dotenv()
 
 # Initialize Pinecone
 pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
-index_name = "companies"
-pinecone_index = pc.Index(index_name)
+pinecone_index = pc.Index(os.getenv("PINECONE_INDEX_NAME"))
 
 # Setup Pinecone Vector Store
 vector_store = PineconeVectorStore(pinecone_index=pinecone_index)
@@ -37,7 +36,7 @@ st.set_page_config(layout="wide")
 # Load the dataset
 @st.cache_data
 def load_data():
-    df = pd.read_csv('sample_with_descriptions.csv')
+    df = pd.read_csv('data/sample_with_descriptions.csv')
     df['founded'] = pd.to_numeric(df['founded'], errors='coerce').fillna(0).astype(int)
     return df
 
@@ -74,21 +73,29 @@ query = st.sidebar.text_input('Enter your query')
 # Top-k selection
 k = st.sidebar.slider('Number of top-k results', min_value=1, max_value=100, value=10)
 
-# Metadata filters
-metadata_filters = []
+# Prompt for application password
+password = st.sidebar.text_input('Enter password', type='password')
 
-# Adding industry filter to metadata filters if selected
-if selected_industries:
-    metadata_filters.append(MetadataFilter(key="industry", value=selected_industries, operator=FilterOperator.IN))
+if password:
+    if password == os.getenv("APP_PASSWORD"):
+        # Metadata filters
+        metadata_filters = []
 
-# Adding country filter to metadata filters if selected
-if selected_countries:
-    metadata_filters.append(MetadataFilter(key="country", value=selected_countries, operator=FilterOperator.IN))
+        # Adding industry filter to metadata filters if selected
+        if selected_industries:
+            metadata_filters.append(MetadataFilter(key="industry", value=selected_industries, operator=FilterOperator.IN))
 
-if query:
-    filters = MetadataFilters(filters=metadata_filters, condition=FilterCondition.AND)
-    results = query_search(query, metadata_filters=filters, k=k)
-    result_ids = [result['id'] for result in results]
-    query_filtered_df = df[df['id'].isin(result_ids)]
-    st.write(f"### Query Results for '{query}' ({len(query_filtered_df)} results)")
-    st.dataframe(query_filtered_df)
+        # Adding country filter to metadata filters if selected
+        if selected_countries:
+            metadata_filters.append(MetadataFilter(key="country", value=selected_countries, operator=FilterOperator.IN))
+
+        if query:
+            filters = MetadataFilters(filters=metadata_filters, condition=FilterCondition.AND)
+            results = query_search(query, metadata_filters=filters, k=k)
+            result_ids = [result['id'] for result in results]
+            query_filtered_df = df[df['id'].isin(result_ids)]
+            st.write(f"### Query Results for '{query}' ({len(query_filtered_df)} results)")
+            st.dataframe(query_filtered_df)
+    else:
+        st.sidebar.error("Incorrect password")
+
