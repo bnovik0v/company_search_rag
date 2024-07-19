@@ -215,6 +215,6 @@ pyrightconfig.json
 *.ipynb
 *.zip
 *.json
-*.txt
 /data/
 free_company_dataset.csv
+results.txt
