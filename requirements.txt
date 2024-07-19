@@ -5,3 +5,4 @@ llama-index
 llama-index-vector-stores-pinecone
 pinecone-client
 python-dotenv
+streamlit
